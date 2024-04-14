@@ -109,7 +109,7 @@ class SingletonTimer:
         if not cls.__allow_overlap:
             cls.__is_measuring = False
         else:
-            cls.__measure_counter -= 1
+            cls.__overlap_counter -= 1
 
     @classmethod
     def __construct_time_record(cls):
@@ -178,11 +178,31 @@ class SingletonTimer:
 
         N = -1
         for k, v in cls.__cumul_time_record_od.items():
-            total_latency += v.cumul_time / v.sum_count
             if N == -1:
                 N = v.sum_count
             else:
                 assert N == v.sum_count
+
+        if cls.__allow_overlap:
+            x_s = x_e = -1
+            for tr in cls.__time_record_list:
+                y_s = tr.time_begin
+                y_e = tr.time_end
+
+                if y_s < x_e:
+                    total_latency += max(0, y_e - x_e)
+                    x_e = max(x_e, y_e)
+                else:
+                    total_latency += y_e - y_s
+                    x_s = y_s
+                    x_e = y_e
+            total_latency /= N
+        else: 
+            for k, v in cls.__cumul_time_record_od.items():
+                total_latency += v.cumul_time / v.sum_count
+        
+
+
 
         print("\n[Display Summary]")
         print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f} s')
