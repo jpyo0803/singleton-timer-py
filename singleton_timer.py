@@ -1,4 +1,5 @@
 import time
+from collections import OrderedDict
 
 '''
 NOTE(jpyo0803): this is not thread safe
@@ -28,6 +29,12 @@ class SingletonTimer:
             self.time_end = time_end
             self.exclude = exclude
 
+    class CumulTimeRecord:
+        def __init__(self):
+            self.category = None  # key
+            self.cumul_time = 0.0
+            self.sum_count = 0
+
     def __new__(cls, allow_overlap=False):
         if not hasattr(cls, "_instance"):
             print(
@@ -40,6 +47,11 @@ class SingletonTimer:
 
             cls.__time_begin_list = []
             cls.__time_end_list = []
+
+            cls.__disable = False
+
+            cls.__time_record_list = []
+            cls.__cumul_time_record_od = OrderedDict()
         return cls._instance
 
     def __init__(self, allow_overlap=False):
@@ -55,6 +67,9 @@ class SingletonTimer:
 
     @classmethod
     def start(cls, tag: str, category: str = None, exclude=False, ticket: int = None):
+        if cls.__disable:
+            return
+
         # NOTE(jpyo0803): when overlapped time measures are not allowed, check it is already measuring
         if not cls.__allow_overlap:
             assert not cls.__is_measuring, "Overlapped time measures are not allowed"
@@ -77,7 +92,9 @@ class SingletonTimer:
         return ticket_now
 
     @classmethod
-    def stop(cls, ticket: int):
+    def end(cls, ticket: int):
+        if cls.__disable:
+            return
         # NOTE(jpyo0803): Generate stop timestamp as soon as possible
 
         time_end = time.time()
@@ -94,6 +111,57 @@ class SingletonTimer:
             cls.__is_measuring = False
         else:
             cls.__measure_counter -= 1
+
+    @classmethod
+    def __construct_time_record_tree(cls):
+        assert len(cls.__time_begin_list) == len(
+            cls.__time_end_list), "sizes of time begin/end list do not match"
+
+        # if no elements in time list, no work to do
+        if len(cls.__time_begin_list) == 0:
+            return
+
+        time_end_od = OrderedDict()  # For fast search
+        for e in cls.__time_end_list:
+            time_end_od[e.ticket] = e
+
+        # clear time end list
+        cls.__time_end_list.clear()
+
+        for x in cls.__time_begin_list:
+            try:
+                y = time_end_od[x.ticket]
+            except:
+                assert False, f'Not found tag = {x.tag}, ticket = {x.ticket}'
+
+            tr = SingletonTimer.TimeRecord(tag=x.tag, category=x.category, ticket=x.ticket, time_begin=x.time_begin, time_end=y.time_end, exclude=x.exclude)
+
+            # increasing order is always preserved
+            cls.__time_record_list.append(tr)
+
+        # clear time begin list
+        cls.__time_begin_list.clear()
+
+    @classmethod
+    def display_log(cls):
+        cls.__construct_time_record_tree()
+
+        # This will simply print out all the time records
+        for tr in cls.__time_record_list:
+            if not tr.exclude:
+                print(f'Tag: {tr.tag}, Category: {tr.category}, Ticket: {tr.ticket}, Begin: {tr.time_begin : 0.6f} s, End: {tr.time_end : 0.6f} s, dt: {tr.time_end - tr.time_begin : 0.6f}')
+
+    @classmethod
+    def display_summary(cls):
+        cls.__construct_time_record_tree()
+
+    @classmethod
+    def disable(cls):
+        cls.__disable = True
+
+    @classmethod
+    def enable(cls):
+        cls.__disable = False
 
 
 if __name__ == "__main__":
