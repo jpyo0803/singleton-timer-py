@@ -6,6 +6,7 @@ from enum import Enum
 NOTE(jpyo0803): this is not thread safe
 '''
 
+
 class SingletonTimer:
     class TimerSource(Enum):
         Time = 0,
@@ -133,15 +134,17 @@ class SingletonTimer:
             if not x.ticket in time_end_od:
                 assert False, f'Not found tag = {x.tag}, ticket = {x.ticket}'
             y = time_end_od[x.ticket]
-            
-            tr = SingletonTimer.TimeRecord(tag=x.tag, category=x.category, ticket=x.ticket, time_begin=x.time_begin, time_end=y.time_end, exclude=x.exclude)
+
+            tr = SingletonTimer.TimeRecord(tag=x.tag, category=x.category, ticket=x.ticket,
+                                           time_begin=x.time_begin, time_end=y.time_end, exclude=x.exclude)
 
             # increasing order is always preserved
             cls.__time_record_list.append(tr)
 
             if not tr.exclude:
                 if not tr.category in cls.__cumul_time_record_od:
-                    cls.__cumul_time_record_od[tr.category] = SingletonTimer.CumulTimeRecord()
+                    cls.__cumul_time_record_od[tr.category] = SingletonTimer.CumulTimeRecord(
+                    )
 
                 ctr = cls.__cumul_time_record_od[tr.category]
 
@@ -154,9 +157,10 @@ class SingletonTimer:
 
         # clear time begin list
         cls.__time_begin_list.clear()
-        
+
         const_end_time = cls.__get_time_stamp()
-        print(f'Construction time record took {const_end_time - const_begin_time : 0.6f} s to process # {proc_num} elements')
+        print(
+            f'Construction time record took {const_end_time - const_begin_time : 0.6f} s to process # {proc_num} elements')
 
     @classmethod
     def display_log(cls):
@@ -175,6 +179,7 @@ class SingletonTimer:
 
         # NOTE(jpyo0803): exclude 'excluded' measures
         total_latency = 0
+        unoverlapped_latency = 0
 
         N = -1
         for k, v in cls.__cumul_time_record_od.items():
@@ -188,28 +193,33 @@ class SingletonTimer:
             for tr in cls.__time_record_list:
                 y_s = tr.time_begin
                 y_e = tr.time_end
+                dt = y_e - y_s
+                total_latency += dt
 
                 if y_s < x_e:
-                    total_latency += max(0, y_e - x_e)
+                    unoverlapped_latency += max(0, y_e - x_e)
                     x_e = max(x_e, y_e)
                 else:
-                    total_latency += y_e - y_s
+                    unoverlapped_latency += dt
                     x_s = y_s
                     x_e = y_e
+            unoverlapped_latency /= N
             total_latency /= N
-        else: 
+            overlapped_latency = total_latency - unoverlapped_latency
+        else:
             for k, v in cls.__cumul_time_record_od.items():
-                total_latency += v.cumul_time / v.sum_count
-        
-
-
+                total_latency += v.cumul_time / N
 
         print("\n[Display Summary]")
-        print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f} s')
+        if cls.__allow_overlap:
+            print(f'N = {N}, Avg. total Latency: {unoverlapped_latency : 0.6f} s, Avg. hidden latency: {overlapped_latency : 0.6f} s')
+        else:
+            print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f} s')
         for k, v in cls.__cumul_time_record_od.items():
             avg_time = v.cumul_time / v.sum_count
             print(f'Category: {k}, Min latency: {v.min_time : 0.6f} s, Max latency: {v.max_time : 0.6f} s, Avg latency: {avg_time : 0.6f} s ({avg_time / total_latency * 100 : 0.2f} % )')
         print("\n")
+
     @classmethod
     def disable(cls):
         cls.__disable = True
@@ -246,7 +256,7 @@ class SingletonTimer:
             assert False, "Invalid timer source"
 
     @classmethod
-    def set_time_source(cls, type : TimerSource):
+    def set_time_source(cls, type: TimerSource):
         if type == SingletonTimer.TimerSource.Time:
             print(f'Set timer source: Time')
         elif type == SingletonTimer.TimerSource.PerfCounter:
@@ -255,6 +265,7 @@ class SingletonTimer:
             print(f'Set timer source: PerfCounterNs')
 
         cls.__timer_source = type
+
 
 if __name__ == "__main__":
     timer = SingletonTimer()
