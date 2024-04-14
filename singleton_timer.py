@@ -163,9 +163,11 @@ class SingletonTimer:
         cls.__construct_time_record()
 
         # This will simply print out all the time records
+        print("\n[Display Log]")
         for tr in cls.__time_record_list:
             if not tr.exclude:
                 print(f'Tag: {tr.tag}, Category: {tr.category}, Ticket: {tr.ticket}, Begin: {tr.time_begin - cls.__reset_time : 0.6f} s, End: {tr.time_end - cls.__reset_time : 0.6f} s, dt: {tr.time_end - tr.time_begin : 0.6f} s')
+        print("\n")
 
     @classmethod
     def display_summary(cls):
@@ -182,11 +184,12 @@ class SingletonTimer:
             else:
                 assert N == v.sum_count
 
+        print("\n[Display Summary]")
         print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f} s')
         for k, v in cls.__cumul_time_record_od.items():
             avg_time = v.cumul_time / v.sum_count
             print(f'Category: {k}, Min latency: {v.min_time : 0.6f} s, Max latency: {v.max_time : 0.6f} s, Avg latency: {avg_time : 0.6f} s ({avg_time / total_latency * 100 : 0.2f} % )')
-
+        print("\n")
     @classmethod
     def disable(cls):
         cls.__disable = True
