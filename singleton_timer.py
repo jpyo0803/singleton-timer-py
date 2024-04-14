@@ -10,6 +10,7 @@ class SingletonTimer:
     class TimerSource(Enum):
         Time = 0,
         PerfCounter = 1,
+        PerfCounterNs = 2,
 
     class TimeStampBegin:
         def __init__(self, tag=None, category=None, ticket=None, time_begin=None, exclude=None):
@@ -48,7 +49,7 @@ class SingletonTimer:
             cls._instance = super().__new__(cls)
 
             cls.__allow_overlap = allow_overlap
-            cls.set_time_source(SingletonTimer.TimerSource.PerfCounter)
+            cls.set_time_source(SingletonTimer.TimerSource.PerfCounterNs)
             cls.reset()
         return cls._instance
 
@@ -164,7 +165,7 @@ class SingletonTimer:
         # This will simply print out all the time records
         for tr in cls.__time_record_list:
             if not tr.exclude:
-                print(f'Tag: {tr.tag}, Category: {tr.category}, Ticket: {tr.ticket}, Begin: {tr.time_begin - cls.__reset_time : 0.6f} s, End: {tr.time_end - cls.__reset_time : 0.6f} s, dt: {tr.time_end - tr.time_begin : 0.6f}')
+                print(f'Tag: {tr.tag}, Category: {tr.category}, Ticket: {tr.ticket}, Begin: {tr.time_begin - cls.__reset_time : 0.6f} s, End: {tr.time_end - cls.__reset_time : 0.6f} s, dt: {tr.time_end - tr.time_begin : 0.6f} s')
 
     @classmethod
     def display_summary(cls):
@@ -181,10 +182,10 @@ class SingletonTimer:
             else:
                 assert N == v.sum_count
 
-        print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f}')
+        print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f} s')
         for k, v in cls.__cumul_time_record_od.items():
             avg_time = v.cumul_time / v.sum_count
-            print(f'Category: {k}, Min latency: {v.min_time : 0.6f}, Max latency: {v.max_time : 0.6f}, Avg latency: {avg_time : 0.6f}, Percent: {avg_time / total_latency * 100 : 0.2f} %')
+            print(f'Category: {k}, Min latency: {v.min_time : 0.6f} s, Max latency: {v.max_time : 0.6f} s, Avg latency: {avg_time : 0.6f} s, Percent: {avg_time / total_latency * 100 : 0.2f} %')
 
     @classmethod
     def disable(cls):
@@ -208,7 +209,7 @@ class SingletonTimer:
         cls.__time_record_list = []
         cls.__cumul_time_record_od = OrderedDict()
         cls.__reset_time = cls.__get_time_stamp()
-        print(f'Singleton timer is reset at {cls.__reset_time : 0.6f}')
+        print(f'Singleton timer is reset at {cls.__reset_time : 0.6f} s')
 
     @classmethod
     def __get_time_stamp(cls):
@@ -216,6 +217,8 @@ class SingletonTimer:
             return time.time()
         elif cls.__timer_source == SingletonTimer.TimerSource.PerfCounter:
             return time.perf_counter()
+        elif cls.__timer_source == SingletonTimer.TimerSource.PerfCounterNs:
+            return time.perf_counter_ns() / 1e9
         else:
             assert False, "Invalid timer source"
 
@@ -225,6 +228,8 @@ class SingletonTimer:
             print(f'Set timer source: Time')
         elif type == SingletonTimer.TimerSource.PerfCounter:
             print(f'Set timer source: PerfCounter')
+        elif type == SingletonTimer.TimerSource.PerfCounterNs:
+            print(f'Set timer source: PerfCounterNs')
 
         cls.__timer_source = type
 
