@@ -217,7 +217,7 @@ class SingletonTimer:
             print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f} s')
         for k, v in cls.__cumul_time_record_od.items():
             avg_time = v.cumul_time / v.sum_count
-            print(f'Category: {k}, Min latency: {v.min_time : 0.6f} s, Max latency: {v.max_time : 0.6f} s, Avg latency: {avg_time : 0.6f} s ({avg_time / total_latency * 100 : 0.2f} % )')
+            print(f'Category: {k}, Min latency: {v.min_time : 0.6f} s, Max latency: {v.max_time : 0.6f} s, Avg latency: {avg_time : 0.6f} s ({avg_time / (unoverlapped_latency if cls.__allow_overlap else total_latency) * 100 : 0.2f} % )')
         print("\n")
 
     @classmethod
