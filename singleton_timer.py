@@ -33,66 +33,67 @@ class SingletonTimer:
             print(
                 f"Singleton timer is created (allow_overlap: {allow_overlap})")
             cls._instance = super().__new__(cls)
-            cls._is_measuring = False
-            cls._allow_overlap = allow_overlap
-            cls._ticker_counter = 0
-            cls._measure_counter = 0
+            cls.__allow_overlap = allow_overlap
+            cls.__is_measuring = False
+            cls.__ticker_counter = 0
+            cls.__overlap_counter = 0
 
-            cls._time_begin_list = []
-            cls._time_end_list = []
+            cls.__time_begin_list = []
+            cls.__time_end_list = []
         return cls._instance
 
     def __init__(self, allow_overlap=False):
         cls = type(self)
-        if not hasattr(cls, "_init"):
-            cls._init = True
+        if not hasattr(cls, "__init"):
+            cls.__init = True
 
     @classmethod
-    def issue_ticket(cls):
-        ticket = cls._ticker_counter
-        cls._ticker_counter += 1
+    def __issue_ticket(cls):
+        ticket = cls.__ticker_counter
+        cls.__ticker_counter += 1
         return ticket
 
     @classmethod
     def start(cls, tag: str, category: str = None, exclude=False, ticket: int = None):
         # NOTE(jpyo0803): when overlapped time measures are not allowed, check it is already measuring
-        if not cls._allow_overlap:
-            assert not cls._is_measuring
-            cls._is_measuring = True
+        if not cls.__allow_overlap:
+            assert not cls.__is_measuring, "Overlapped time measures are not allowed"
+            cls.__is_measuring = True
         else:
-            cls._measure_counter += 1
-        ticket_now = ticket if ticket is not None else cls.issue_ticket()
+            cls.__overlap_counter += 1
+        ticket_now = ticket if ticket is not None else cls.__issue_ticket()
 
         ts_begin = SingletonTimer.TimeStampBegin()
         ts_begin.tag = tag
         ts_begin.category = category
         ts_begin.exclude = exclude
         ts_begin.ticket = ticket_now
-        ts_begin.time_begin = time.time()
 
-        cls._time_begin_list.append(ts_begin)
+        cls.__time_begin_list.append(ts_begin)
+
+        # NOTE(jpyo0803): Generate star timestamp as late as possible
+        cls.__time_begin_list[-1].time_begin = time.time()
 
         return ticket_now
 
     @classmethod
     def stop(cls, ticket: int):
+        # NOTE(jpyo0803): Generate stop timestamp as soon as possible
+
         time_end = time.time()
-        if not cls._allow_overlap:
-            assert cls._is_measuring
+        if not cls.__allow_overlap:
+            assert cls.__is_measuring
 
         ts_end = SingletonTimer.TimeStampEnd()
         ts_end.ticket = ticket
         ts_end.time_end = time_end
 
-        cls._time_end_list.append(ts_end)
+        cls.__time_end_list.append(ts_end)
 
-        if not cls._allow_overlap:
-            cls._is_measuring = False
+        if not cls.__allow_overlap:
+            cls.__is_measuring = False
         else:
-            cls._measure_counter -= 1
-
-    @classmethod
-    def 
+            cls.__measure_counter -= 1
 
 
 if __name__ == "__main__":
