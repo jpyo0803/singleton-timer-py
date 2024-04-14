@@ -34,6 +34,8 @@ class SingletonTimer:
             self.category = None  # key
             self.cumul_time = 0.0
             self.sum_count = 0
+            self.max_time = 0.0
+            self.min_time = 1e15
 
     def __new__(cls, allow_overlap=False):
         if not hasattr(cls, "_instance"):
@@ -42,7 +44,7 @@ class SingletonTimer:
             cls._instance = super().__new__(cls)
             cls.__allow_overlap = allow_overlap
             cls.__is_measuring = False
-            cls.__ticker_counter = 0
+            cls.__ticket_counter = 0
             cls.__overlap_counter = 0
 
             cls.__time_begin_list = []
@@ -61,8 +63,8 @@ class SingletonTimer:
 
     @classmethod
     def __issue_ticket(cls):
-        ticket = cls.__ticker_counter
-        cls.__ticker_counter += 1
+        ticket = cls.__ticket_counter
+        cls.__ticket_counter += 1
         return ticket
 
     @classmethod
@@ -113,10 +115,12 @@ class SingletonTimer:
             cls.__measure_counter -= 1
 
     @classmethod
-    def __construct_time_record_tree(cls):
+    def __construct_time_record(cls):
         assert len(cls.__time_begin_list) == len(
             cls.__time_end_list), "sizes of time begin/end list do not match"
 
+        const_begin_time = time.time()
+        proc_num = len(cls.__time_begin_list)
         # if no elements in time list, no work to do
         if len(cls.__time_begin_list) == 0:
             return
@@ -129,22 +133,37 @@ class SingletonTimer:
         cls.__time_end_list.clear()
 
         for x in cls.__time_begin_list:
-            try:
-                y = time_end_od[x.ticket]
-            except:
+            if not x.ticket in time_end_od:
                 assert False, f'Not found tag = {x.tag}, ticket = {x.ticket}'
-
+            y = time_end_od[x.ticket]
+            
             tr = SingletonTimer.TimeRecord(tag=x.tag, category=x.category, ticket=x.ticket, time_begin=x.time_begin, time_end=y.time_end, exclude=x.exclude)
 
             # increasing order is always preserved
             cls.__time_record_list.append(tr)
 
+            if not tr.exclude:
+                if not tr.category in cls.__cumul_time_record_od:
+                    cls.__cumul_time_record_od[tr.category] = SingletonTimer.CumulTimeRecord()
+
+                ctr = cls.__cumul_time_record_od[tr.category]
+
+                dt = tr.time_end - tr.time_begin
+                ctr.category = tr.category
+                ctr.cumul_time += dt
+                ctr.sum_count += 1
+                ctr.max_time = max(ctr.max_time, dt)
+                ctr.min_time = min(ctr.min_time, dt)
+
         # clear time begin list
         cls.__time_begin_list.clear()
+        
+        const_end_time = time.time()
+        print(f'Construction time record took {const_end_time - const_begin_time : 0.6f} s to process # {proc_num} elements')
 
     @classmethod
     def display_log(cls):
-        cls.__construct_time_record_tree()
+        cls.__construct_time_record()
 
         # This will simply print out all the time records
         for tr in cls.__time_record_list:
@@ -153,7 +172,26 @@ class SingletonTimer:
 
     @classmethod
     def display_summary(cls):
-        cls.__construct_time_record_tree()
+        cls.__construct_time_record()
+
+        # NOTE(jpyo0803): exclude 'excluded' measures
+        total_latency = 0
+
+        N = -1
+        for k, v in cls.__cumul_time_record_od.items():
+            total_latency += v.cumul_time / v.sum_count
+            if N == -1:
+                N = v.sum_count
+            else:
+                assert N == v.sum_count
+
+        print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f}')
+        for k, v in cls.__cumul_time_record_od.items():
+            avg_time = v.cumul_time / v.sum_count
+            print(f'Category: {k}, Min time: {v.min_time : 0.6f}, Max Time: {v.max_time : 0.6f}, Avg Time: {avg_time : 0.6f}, Percent: {avg_time / total_latency * 100 : 0.2f} %')
+        
+
+
 
     @classmethod
     def disable(cls):
@@ -162,6 +200,21 @@ class SingletonTimer:
     @classmethod
     def enable(cls):
         cls.__disable = False
+
+    @classmethod
+    def reset(cls):
+        cls.__is_measuring = False
+        cls.__ticket_counter = 0
+        cls.__overlap_counter = 0
+
+        cls.__time_begin_list.clear()
+        cls.__time_end_list.clear()
+
+        cls.__disable = False
+
+        cls.__time_record_list.clear()
+        cls.__cumul_time_record_od.clear()
+        print("Singleton timer is reset")
 
 
 if __name__ == "__main__":
