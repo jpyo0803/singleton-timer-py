@@ -1,12 +1,16 @@
 import time
 from collections import OrderedDict
+from enum import Enum
 
 '''
 NOTE(jpyo0803): this is not thread safe
 '''
 
-
 class SingletonTimer:
+    class TimerSource(Enum):
+        Time = 0,
+        PerfCounter = 1,
+
     class TimeStampBegin:
         def __init__(self, tag=None, category=None, ticket=None, time_begin=None, exclude=None):
             self.tag = tag
@@ -44,6 +48,7 @@ class SingletonTimer:
             cls._instance = super().__new__(cls)
 
             cls.__allow_overlap = allow_overlap
+            cls.set_time_source(SingletonTimer.TimerSource.PerfCounter)
             cls.reset()
         return cls._instance
 
@@ -207,11 +212,21 @@ class SingletonTimer:
 
     @classmethod
     def __get_time_stamp(cls):
-        return time.perf_counter()
+        if cls.__timer_source == SingletonTimer.TimerSource.Time:
+            return time.time()
+        elif cls.__timer_source == SingletonTimer.TimerSource.PerfCounter:
+            return time.perf_counter()
+        else:
+            assert False, "Invalid timer source"
 
     @classmethod
-    def set_timer(cls, type):
-        pass
+    def set_time_source(cls, type : TimerSource):
+        if type == SingletonTimer.TimerSource.Time:
+            print(f'Set timer source: Time')
+        elif type == SingletonTimer.TimerSource.PerfCounter:
+            print(f'Set timer source: PerfCounter')
+
+        cls.__timer_source = type
 
 if __name__ == "__main__":
     timer = SingletonTimer()
