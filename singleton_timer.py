@@ -42,18 +42,9 @@ class SingletonTimer:
             print(
                 f"Singleton timer is created (allow_overlap: {allow_overlap})")
             cls._instance = super().__new__(cls)
+
             cls.__allow_overlap = allow_overlap
-            cls.__is_measuring = False
-            cls.__ticket_counter = 0
-            cls.__overlap_counter = 0
-
-            cls.__time_begin_list = []
-            cls.__time_end_list = []
-
-            cls.__disable = False
-
-            cls.__time_record_list = []
-            cls.__cumul_time_record_od = OrderedDict()
+            cls.reset()
         return cls._instance
 
     def __init__(self, allow_overlap=False):
@@ -89,7 +80,7 @@ class SingletonTimer:
         cls.__time_begin_list.append(ts_begin)
 
         # NOTE(jpyo0803): Generate star timestamp as late as possible
-        cls.__time_begin_list[-1].time_begin = time.time()
+        cls.__time_begin_list[-1].time_begin = cls.__get_time_stamp()
 
         return ticket_now
 
@@ -99,7 +90,7 @@ class SingletonTimer:
             return
         # NOTE(jpyo0803): Generate stop timestamp as soon as possible
 
-        time_end = time.time()
+        time_end = cls.__get_time_stamp()
         if not cls.__allow_overlap:
             assert cls.__is_measuring
 
@@ -119,7 +110,7 @@ class SingletonTimer:
         assert len(cls.__time_begin_list) == len(
             cls.__time_end_list), "sizes of time begin/end list do not match"
 
-        const_begin_time = time.time()
+        const_begin_time = cls.__get_time_stamp()
         proc_num = len(cls.__time_begin_list)
         # if no elements in time list, no work to do
         if len(cls.__time_begin_list) == 0:
@@ -158,7 +149,7 @@ class SingletonTimer:
         # clear time begin list
         cls.__time_begin_list.clear()
         
-        const_end_time = time.time()
+        const_end_time = cls.__get_time_stamp()
         print(f'Construction time record took {const_end_time - const_begin_time : 0.6f} s to process # {proc_num} elements')
 
     @classmethod
@@ -168,7 +159,7 @@ class SingletonTimer:
         # This will simply print out all the time records
         for tr in cls.__time_record_list:
             if not tr.exclude:
-                print(f'Tag: {tr.tag}, Category: {tr.category}, Ticket: {tr.ticket}, Begin: {tr.time_begin : 0.6f} s, End: {tr.time_end : 0.6f} s, dt: {tr.time_end - tr.time_begin : 0.6f}')
+                print(f'Tag: {tr.tag}, Category: {tr.category}, Ticket: {tr.ticket}, Begin: {tr.time_begin - cls.__reset_time : 0.6f} s, End: {tr.time_end - cls.__reset_time : 0.6f} s, dt: {tr.time_end - tr.time_begin : 0.6f}')
 
     @classmethod
     def display_summary(cls):
@@ -188,10 +179,7 @@ class SingletonTimer:
         print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f}')
         for k, v in cls.__cumul_time_record_od.items():
             avg_time = v.cumul_time / v.sum_count
-            print(f'Category: {k}, Min time: {v.min_time : 0.6f}, Max Time: {v.max_time : 0.6f}, Avg Time: {avg_time : 0.6f}, Percent: {avg_time / total_latency * 100 : 0.2f} %')
-        
-
-
+            print(f'Category: {k}, Min latency: {v.min_time : 0.6f}, Max latency: {v.max_time : 0.6f}, Avg latency: {avg_time : 0.6f}, Percent: {avg_time / total_latency * 100 : 0.2f} %')
 
     @classmethod
     def disable(cls):
@@ -207,15 +195,23 @@ class SingletonTimer:
         cls.__ticket_counter = 0
         cls.__overlap_counter = 0
 
-        cls.__time_begin_list.clear()
-        cls.__time_end_list.clear()
+        cls.__time_begin_list = []
+        cls.__time_end_list = []
 
         cls.__disable = False
 
-        cls.__time_record_list.clear()
-        cls.__cumul_time_record_od.clear()
-        print("Singleton timer is reset")
+        cls.__time_record_list = []
+        cls.__cumul_time_record_od = OrderedDict()
+        cls.__reset_time = cls.__get_time_stamp()
+        print(f'Singleton timer is reset at {cls.__reset_time : 0.6f}')
 
+    @classmethod
+    def __get_time_stamp(cls):
+        return time.perf_counter()
+
+    @classmethod
+    def set_timer(cls, type):
+        pass
 
 if __name__ == "__main__":
     timer = SingletonTimer()
