@@ -229,6 +229,14 @@ class SingletonTimer:
         cls.__disable = False
 
     @classmethod
+    def get_allow_overlap(cls):
+        return cls.__allow_overlap
+    
+    @classmethod
+    def get_overlap_counter(cls):
+        return cls.__overlap_counter
+
+    @classmethod
     def reset(cls):
         cls.__is_measuring = False
         cls.__ticket_counter = 0

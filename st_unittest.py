@@ -10,11 +10,11 @@ class SingletonTimerTest(unittest.TestCase):
 
     def test_allow_overlap(self):
         timer = st.SingletonTimer(allow_overlap=True)
-        self.assertTrue(timer._allow_overlap)
+        self.assertTrue(timer.get_allow_overlap())
         timer.start(tag="A")
         timer.start(tag="B")
         timer.start(tag="C")
-        self.assertEqual(timer._measure_counter, 3)
+        self.assertEqual(timer.get_overlap_counter(), 3)
 
 
 if __name__ == '__main__':
