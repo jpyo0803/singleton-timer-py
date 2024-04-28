@@ -204,7 +204,7 @@ class SingletonTimer:
             unoverlapped_percent = unoverlapped_latency / serial_latency
             overlapped_percent = 1 - unoverlapped_percent
 
-
+        raw_data = dict()
         print("\n[Display Summary]")
         if cls.__allow_overlap:
             print(
@@ -213,8 +213,11 @@ class SingletonTimer:
             print(f'Avg. total Latency: {avg_serial_latency : 0.6f} s')
         for k, v in cls.__cumul_time_record_od.items():
             avg_time = v.cumul_time / v.sum_count
+            raw_data[k] = avg_time
             print(f'Category: {k}, # Samples = {v.sum_count}, Min latency: {v.min_time : 0.6f} s, Max latency: {v.max_time : 0.6f} s, Avg latency: {avg_time : 0.6f} s ({avg_time / (avg_serial_latency * unoverlapped_percent if cls.__allow_overlap else avg_serial_latency) * 100 : 0.2f} % )')
         print("\n")
+
+        return raw_data
 
     @classmethod
     def disable(cls):
