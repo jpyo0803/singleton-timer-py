@@ -66,7 +66,7 @@ class SingletonTimer:
         return ticket
 
     @classmethod
-    def start(cls, tag: str, category: str = None, exclude=False, ticket: int = None):
+    def start(cls, tag: str, category: str, exclude=False, ticket: int = None):
         if cls.__disable:
             return
 
