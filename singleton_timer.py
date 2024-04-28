@@ -41,7 +41,7 @@ class SingletonTimer:
             self.cumul_time = 0.0
             self.sum_count = 0
             self.max_time = 0.0
-            self.min_time = 1e15
+            self.min_time = 1e18
 
     def __new__(cls, allow_overlap=False):
         if not hasattr(cls, "_instance"):
@@ -186,7 +186,7 @@ class SingletonTimer:
             if N == -1:
                 N = v.sum_count
             else:
-                assert N == v.sum_count
+                assert N == v.sum_count, f'N ({N}) != v.sum_count ({v.sum_count})'
 
         if cls.__allow_overlap:
             x_s = x_e = -1
@@ -212,7 +212,8 @@ class SingletonTimer:
 
         print("\n[Display Summary]")
         if cls.__allow_overlap:
-            print(f'N = {N}, Avg. total Latency: {unoverlapped_latency : 0.6f} s, Avg. hidden latency: {overlapped_latency : 0.6f} s')
+            print(
+                f'N = {N}, Avg. total Latency: {unoverlapped_latency : 0.6f} s, Avg. hidden latency: {overlapped_latency : 0.6f} s')
         else:
             print(f'N = {N}, Avg. total Latency: {total_latency : 0.6f} s')
         for k, v in cls.__cumul_time_record_od.items():
@@ -231,7 +232,7 @@ class SingletonTimer:
     @classmethod
     def get_allow_overlap(cls):
         return cls.__allow_overlap
-    
+
     @classmethod
     def get_overlap_counter(cls):
         return cls.__overlap_counter
