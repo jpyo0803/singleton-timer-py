@@ -189,19 +189,9 @@ class SingletonTimer:
 
         for k, v in dt_arr_by_category.items():
             v.sort()
-
             n = len(v)
-
-            lower_cut_value = v[int(n * outlier_percent)]
-            upper_cut_value = v[int(n * (1 - outlier_percent))]
-
-            filtered_dt_arr = []
-
-            for e in v:
-                if e >= lower_cut_value and e <= upper_cut_value:
-                    filtered_dt_arr.append(e)
-
-            dt_arr_by_category[k] = filtered_dt_arr
+            dt_arr_by_category[k] = v[int(
+                n * outlier_percent):int(n * (1 - outlier_percent))]
 
         for k, v in dt_arr_by_category.items():
             if not k in cls.__cumul_time_record_od:
@@ -269,23 +259,23 @@ class SingletonTimer:
 
         return raw_data
 
-    @classmethod
+    @ classmethod
     def disable(cls):
         cls.__disable = True
 
-    @classmethod
+    @ classmethod
     def enable(cls):
         cls.__disable = False
 
-    @classmethod
+    @ classmethod
     def get_allow_overlap(cls):
         return cls.__allow_overlap
 
-    @classmethod
+    @ classmethod
     def get_overlap_counter(cls):
         return cls.__overlap_counter
 
-    @classmethod
+    @ classmethod
     def reset(cls):
         cls.__is_measuring = False
         cls.__ticket_counter = 0
@@ -301,7 +291,7 @@ class SingletonTimer:
         cls.__reset_time = cls.__get_time_stamp()
         print(f'Singleton timer is reset at {cls.__reset_time : 0.6f} s')
 
-    @classmethod
+    @ classmethod
     def __get_time_stamp(cls):
         if cls.__timer_source == SingletonTimer.TimerSource.Time:
             return time.time()
@@ -312,7 +302,7 @@ class SingletonTimer:
         else:
             assert False, "Invalid timer source"
 
-    @classmethod
+    @ classmethod
     def set_time_source(cls, type: TimerSource):
         if type == SingletonTimer.TimerSource.Time:
             print(f'Set timer source: Time')
