@@ -179,35 +179,42 @@ class SingletonTimer:
 
         cls.__construct_time_record()
 
-        dt_arr = []
+        dt_arr_by_category = OrderedDict()
         for tr in cls.__time_record_list:
             if not tr.exclude:
-                dt_arr.append(tr.time_end - tr.time_begin)
-        # sort in increasing order
-        dt_arr.sort()
+                if not tr.category in dt_arr_by_category:
+                    dt_arr_by_category[tr.category] = []
+                dt_arr_by_category[tr.category].append(
+                    tr.time_end - tr.time_begin)
 
-        n = len(dt_arr)
-        lower_cut_index = int(n * outlier_percent)
-        upper_cut_index = int(n * (1 - outlier_percent))
+        for k, v in dt_arr_by_category.items():
+            v.sort()
 
-        lower_cut_value = dt_arr[lower_cut_index]
-        upper_cut_value = dt_arr[upper_cut_index]
+            n = len(v)
 
-        for tr in cls.__time_record_list:
-            if not tr.exclude:
-                if not tr.category in cls.__cumul_time_record_od:
-                    cls.__cumul_time_record_od[tr.category] = SingletonTimer.CumulTimeRecord(
-                    )
+            lower_cut_value = v[int(n * outlier_percent)]
+            upper_cut_value = v[int(n * (1 - outlier_percent))]
 
-                ctr = cls.__cumul_time_record_od[tr.category]
+            filtered_dt_arr = []
 
-                dt = tr.time_end - tr.time_begin
-                if dt >= lower_cut_value and dt <= upper_cut_value:
-                    ctr.category = tr.category
-                    ctr.cumul_time += dt
-                    ctr.sum_count += 1
-                    ctr.max_time = max(ctr.max_time, dt)
-                    ctr.min_time = min(ctr.min_time, dt)
+            for e in v:
+                if e >= lower_cut_value and e <= upper_cut_value:
+                    filtered_dt_arr.append(e)
+
+            dt_arr_by_category[k] = filtered_dt_arr
+
+        for k, v in dt_arr_by_category.items():
+            if not k in cls.__cumul_time_record_od:
+                cls.__cumul_time_record_od[k] = SingletonTimer.CumulTimeRecord(
+                )
+
+            ctr = cls.__cumul_time_record_od[k]
+
+            ctr.category = k
+            ctr.sum_count = len(v)
+            ctr.min_time = min(v)
+            ctr.max_time = max(v)
+            ctr.cumul_time = sum(v)
 
         # NOTE(jpyo0803): exclude 'excluded' measures
         avg_serial_latency = 0
