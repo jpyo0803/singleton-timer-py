@@ -182,8 +182,8 @@ class SingletonTimer:
         serial_latency = 0
 
         for k, v in cls.__cumul_time_record_od.items():
-            serial_latency += v.cumul_time         
-            avg_serial_latency += v.cumul_time / v.sum_count   
+            serial_latency += v.cumul_time
+            avg_serial_latency += v.cumul_time / v.sum_count
 
         if cls.__allow_overlap:
             unoverlapped_latency = 0
@@ -211,10 +211,16 @@ class SingletonTimer:
                 f'Avg. total Latency: {avg_serial_latency * unoverlapped_percent : 0.6f} s, Avg. hidden latency: {overlapped_percent * 100: 0.2f} %')
         else:
             print(f'Avg. total Latency: {avg_serial_latency : 0.6f} s')
+
+        total_cumul_time = 0
+        for k, v in cls.__cumul_time_record_od.items():
+            total_cumul_time += v.cumul_time
+
         for k, v in cls.__cumul_time_record_od.items():
             avg_time = v.cumul_time / v.sum_count
             raw_data[k] = avg_time
-            print(f'Category: {k}, # Samples = {v.sum_count}, Min latency: {v.min_time : 0.6f} s, Max latency: {v.max_time : 0.6f} s, Avg latency: {avg_time : 0.6f} s ({avg_time / (avg_serial_latency * unoverlapped_percent if cls.__allow_overlap else avg_serial_latency) * 100 : 0.2f} % )')
+            print(f'Category: {k}, # Samples = {v.sum_count}, Min latency: {v.min_time : 0.6f} s, Max latency: {v.max_time : 0.6f} s, Avg latency: {avg_time : 0.6f} s, ({avg_time / (avg_serial_latency * unoverlapped_percent if cls.__allow_overlap else avg_serial_latency) * 100 : 0.2f} % ), Cumulative latency: { v.cumul_time : 0.6f} s ({v.cumul_time / total_cumul_time * 100 : 0.2f} %)')
+
         print("\n")
 
         return raw_data
