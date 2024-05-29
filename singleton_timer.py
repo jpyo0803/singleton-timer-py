@@ -218,7 +218,12 @@ class SingletonTimer:
 
         for k, v in cls.__cumul_time_record_od.items():
             avg_time = v.cumul_time / v.sum_count
-            raw_data[k] = avg_time
+            # self.cumul_time = 0.0
+            # self.sum_count = 0
+            # self.max_time = 0.0
+            # self.min_time = 1e18
+            raw_data[k] = (v.sum_count, v.min_time,
+                           v.max_time, avg_time, v.cumul_time)
             print(f'Category: {k}, # Samples = {v.sum_count}, Min latency: {v.min_time : 0.6f} s, Max latency: {v.max_time : 0.6f} s, Avg latency: {avg_time : 0.6f} s, ({avg_time / (avg_serial_latency * unoverlapped_percent if cls.__allow_overlap else avg_serial_latency) * 100 : 0.2f} % ), Cumulative latency: { v.cumul_time : 0.6f} s ({v.cumul_time / total_cumul_time * 100 : 0.2f} %)')
 
         print("\n")
